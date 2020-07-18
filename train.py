@@ -96,7 +96,7 @@ def get_callbacks(arguments):
     # Model should be load by program then load the model weights for inference.
     model_checkpoint = ModelCheckpoint(
         join(arguments.check_dir, arguments.output_name + '_model_' + arguments.time + '.hdf5'),
-        monitor=monitor_name, save_best_only=True, save_weights_only=False, save_freq=2,
+        monitor=monitor_name, save_best_only=True, save_weights_only=False,
         verbose=1, mode='max')
     lr_reducer = ReduceLROnPlateau(monitor=monitor_name, factor=0.05, cooldown=0, patience=50, verbose=1, mode='max')
     early_stopper = EarlyStopping(monitor=monitor_name, min_delta=0, patience=arguments.patience, verbose=0, mode='max')
