@@ -124,7 +124,7 @@ def generate_train_batches(root_path, train_list, net_input_shape, net, batchSiz
                 # Read image file from pre-processing image numpy format compression files.
                 scan_name = scan_name[0]
                 path_to_np = join(root_path,'np_files',basename(scan_name)[:-3]+'npz')
-                logging.info('\npath_to_np=%s'%(path_to_np))
+                logging.info('\npath_to_np=%s' % path_to_np)
                 with np.load(path_to_np) as data:
                     train_img = data['img']
                     train_mask = data['mask']
@@ -266,7 +266,7 @@ def generate_test_batches(root_path, test_list, net_input_shape, batchSize=1, nu
     logging.info('\nload_2D_data.generate_test_batches')
     img_batch = np.zeros((np.concatenate(((batchSize,), net_input_shape))), dtype=np.float32)
     count = 0
-    logging.info('\nload_2D_data.generate_test_batches: test_list=%s'%(test_list))
+    logging.info('\nload_2D_data.generate_test_batches: test_list=%s' % test_list)
     for i, scan_name in enumerate(test_list):
         try:
             scan_name = scan_name[0]

@@ -3,10 +3,11 @@ This file contains an implementation of U-Net based on the paper
 "U-Net: Convolutional Network for Biomedical Image Segmentation"
 (https://arxiv.org/abs/1505.04597).
 """
-from keras.models import Model
 from keras.layers import Input, concatenate, Conv2D, MaxPooling2D, Conv2DTranspose
+from keras.models import Model
 
-def UNet(input_shape=(512,512,1)):
+
+def UNet(input_shape=(512, 512, 1)):
     inputs = Input(input_shape)
     conv1 = Conv2D(64, (3, 3), activation='relu', padding='same')(inputs)
     conv1 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv1)

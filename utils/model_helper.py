@@ -9,6 +9,7 @@ This is a helper file for choosing which model to create.
 '''
 import tensorflow as tf
 
+
 def create_model(args, input_shape, enable_decoder=True):
     # If using CPU or single GPU
     if args.gpus <= 1:

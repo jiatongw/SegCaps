@@ -176,7 +176,7 @@ def train(args, train_list, val_list, u_model, net_input_shape):
     if args.retrain == 1:
         # Retrain the model. Load re-train weights.
         weights_path = join(args.data_root_dir, args.weights_path)
-        logging.info('\nRetrain model from weights_path=%s' % (weights_path))
+        logging.info('\nRetrain model from weights_path=%s' % weights_path)
         model.load_weights(weights_path)
     else:  # Train from scratch
         pass

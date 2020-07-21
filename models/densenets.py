@@ -46,38 +46,36 @@ This implementation is based on the following reference code:
  - https://github.com/liuzhuang13/DenseNet
 
 '''
-from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
 
 import warnings
 
-from keras.models import Model
-from keras.layers import Dense
-from keras.layers import Dropout
+import keras.backend as K
+from keras.applications.imagenet_utils import _obtain_input_shape
+from keras.applications.imagenet_utils import preprocess_input as _preprocess_input
+from keras.engine.topology import get_source_inputs
 from keras.layers import Activation
-from keras.layers import Reshape
+from keras.layers import AveragePooling2D
+from keras.layers import BatchNormalization
 from keras.layers import Conv2D
 from keras.layers import Conv2DTranspose
-from keras.layers import UpSampling2D
-from keras.layers import MaxPooling2D
-from keras.layers import AveragePooling2D
-from keras.layers import GlobalMaxPooling2D
+from keras.layers import Dense
+from keras.layers import Dropout
 from keras.layers import GlobalAveragePooling2D
+from keras.layers import GlobalMaxPooling2D
 from keras.layers import Input
+from keras.layers import MaxPooling2D
+from keras.layers import Reshape
+from keras.layers import UpSampling2D
 from keras.layers import concatenate
-from keras.layers import BatchNormalization
+from keras.models import Model
 from keras.regularizers import l2
-from keras.utils.layer_utils import convert_all_kernels_in_model
 from keras.utils.data_utils import get_file
-from keras.engine.topology import get_source_inputs
-from keras.applications.imagenet_utils import _obtain_input_shape
-from keras.applications.imagenet_utils import decode_predictions
-from keras.applications.imagenet_utils import preprocess_input as _preprocess_input
-import keras.backend as K
-from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping, ReduceLROnPlateau
+from keras.utils.layer_utils import convert_all_kernels_in_model
 
-from subpixel_upscaling import SubPixelUpscaling
+from models.subpixel_upscaling import SubPixelUpscaling
 
 DENSENET_121_WEIGHTS_PATH = r'https://github.com/titu1994/DenseNet/releases/download/v3.0/DenseNet-BC-121-32.h5'
 DENSENET_161_WEIGHTS_PATH = r'https://github.com/titu1994/DenseNet/releases/download/v3.0/DenseNet-BC-161-48.h5'
