@@ -28,24 +28,26 @@ Enhancement:
     Support image download by Image IDs with specific masking class.
 
 '''
-import logging
 import argparse
+import logging
+import os
 from os.path import join
-from pycocotools.coco import COCO
+
+import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import skimage.io as io
-import matplotlib.pyplot as plt
-import os
+from pycocotools.coco import COCO
 from tqdm import tqdm
-import cv2
 
 FILE_MIDDLE_NAME = 'train'
 IMAGE_FOLDER = 'imgs'
 MASK_FOLDER = 'masks'
-RESOLUTION = 512 # Resolution of the input for the model.
-BACKGROUND_COLOR = (0, 0, 0) # Black background color for padding areas
+RESOLUTION = 512  # Resolution of the input for the model.
+BACKGROUND_COLOR = (0, 0, 0)  # Black background color for padding areas
 
-def image_resize2square(image, desired_size = None):
+
+def image_resize2square(image, desired_size=None):
     '''
     Resize image to a square by specific resolution(desired_size).
     '''
@@ -72,13 +74,15 @@ def image_resize2square(image, desired_size = None):
     delta_h = desired_size - new_size[0]
     top, bottom = delta_h // 2, delta_h - (delta_h // 2)
     left, right = delta_w // 2, delta_w - (delta_w // 2)
-    
+
     # Assign background color for padding areas. Default is Black.
     bg_color = BACKGROUND_COLOR
-    new_image = cv2.copyMakeBorder(resized, top, bottom, left, right, cv2.BORDER_CONSTANT, value = bg_color)
+    new_image = cv2.copyMakeBorder(resized, top, bottom, left, right, cv2.BORDER_CONSTANT, value=bg_color)
 
     # return the resized image
     return new_image
+
+
 def create_path(data_dir):
     '''
     Create a specific path to store result images.
@@ -92,16 +96,16 @@ def create_path(data_dir):
     try:
         output_image_path = join(data_dir, IMAGE_FOLDER)
         if not os.path.isdir(output_image_path):
-            os.makedirs(output_image_path) 
-        output_mask_path = join(data_dir, MASK_FOLDER) 
+            os.makedirs(output_image_path)
+        output_mask_path = join(data_dir, MASK_FOLDER)
         if not os.path.isdir(output_mask_path):
-            os.makedirs(output_mask_path)  
+            os.makedirs(output_mask_path)
         return output_image_path, output_mask_path
     except Exception as e:
-        logging.error('\nCreate folders error! Message: %s'%(str(e)))
+        logging.error('\nCreate folders error! Message: %s' % (str(e)))
         exit(0)
-        
-            
+
+
 def main(args):
     '''
      The main entry point of the program
@@ -109,40 +113,40 @@ def main(args):
          and generate annotation to the specific object classes.
     '''
     plt.ioff()
-    
+
     data_dir = args.data_root_dir
     category_list = list(args.category)
-    annFile = args.annotation_file   
+    annFile = args.annotation_file
     num = args.number
     file_name = ''
- 
-    #Create path for output
+
+    # Create path for output
     output_image_path, output_mask_path = create_path(data_dir)
- 
+
     # initialize COCO API for instance annotations
-    coco=COCO(annFile)
-    
+    coco = COCO(annFile)
+
     # get all images containing given categories, select one at random
-    catIds = coco.getCatIds(catNms=category_list);
- 
+    catIds = coco.getCatIds(catNms=category_list)
+
     if args.id is not None:
         imgIds = list(args.id)
         num = len(imgIds)
-    else: 
+    else:
         # Get image id list from categories.
-        imgIds = coco.getImgIds(catIds=catIds );
-    
+        imgIds = coco.getImgIds(catIds=catIds)
+
     print('\nImage Generating...')
     for i in tqdm(range(num)):
         try:
             if args.id is not None:
-                img = coco.loadImgs(imgIds[i])[0]   # Load imgs with the specified ids.
+                img = coco.loadImgs(imgIds[i])[0]  # Load imgs with the specified ids.
             else:
-                img = coco.loadImgs(imgIds[np.random.randint(0,len(imgIds))])[0]
+                img = coco.loadImgs(imgIds[np.random.randint(0, len(imgIds))])[0]
         except Exception as e:
-            print('\nError: Image ID: %s cannot be found in the annotation file.'%(e))
+            print('\nError: Image ID: %s cannot be found in the annotation file.' % (e))
             continue
-        
+
         # use url to load image
         I = io.imread(img['coco_url'])
         resolution = args.resolution
@@ -150,28 +154,29 @@ def main(args):
             I = image_resize2square(I, args.resolution)
         else:
             pass
-        
+
         plt.axis('off')
-        file_name = join(output_image_path, FILE_MIDDLE_NAME+str(i) + '.png')
+        file_name = join(output_image_path, FILE_MIDDLE_NAME + str(i) + '.png')
         plt.imsave(file_name, I)
-         
+
         # Get annotation ids that satisfy the given filter conditions.
         annIds = coco.getAnnIds(imgIds=img['id'], catIds=catIds, iscrowd=None)
-        anns = coco.loadAnns(annIds)    # load anns with the specified ids
+        anns = coco.loadAnns(annIds)  # load anns with the specified ids
         mask = coco.annToMask(anns[0])
-         
+
         # Generate mask
         for j in range(len(anns)):
             mask += coco.annToMask(anns[j])
-         
+
         # Background color = (R,G,B)=[68, 1, 84] for MS COCO 2017
         # save the mask image
         mask = image_resize2square(mask, args.resolution)
-        file_name = join(output_mask_path, FILE_MIDDLE_NAME+str(i) + '.png')
+        file_name = join(output_mask_path, FILE_MIDDLE_NAME + str(i) + '.png')
         plt.imsave(file_name, mask)
-         
+
     print('\nProgram finished !')
     return True
+
 
 if __name__ == '__main__':
     '''
@@ -179,24 +184,23 @@ if __name__ == '__main__':
     Example command:
     $python3 getcoco17 --data_root_dir ./data --category person dog --annotation_dir './annotations/instances_val2017.json --number 10'
     '''
-    
-    parser = argparse.ArgumentParser(description = 'Download COCO 2017 image Data')
-    parser.add_argument('--data_root_dir', type = str, required = False,
+
+    parser = argparse.ArgumentParser(description='Download COCO 2017 image Data')
+    parser.add_argument('--data_root_dir', type=str, required=False,
                         help='The root directory for your data.')
-    parser.add_argument('--category', nargs = '+', type=str, default = 'person',
+    parser.add_argument('--category', nargs='+', type=str, default='person',
                         help='MS COCO object categories list (--category person dog cat). default value is person')
-    parser.add_argument('--annotation_file', type = str, default = './instances_val2017.json',
-                        help='The annotation json file directory of MS COCO object categories list. file name should be instances_val2017.json')    
-    parser.add_argument('--resolution', type = int, default = 0,
+    parser.add_argument('--annotation_file', type=str, default='./instances_val2017.json',
+                        help='The annotation json file directory of MS COCO object categories list. file name should be instances_val2017.json')
+    parser.add_argument('--resolution', type=int, default=0,
                         help='The resolution of images you want to transfer. It will be a square image.'
-                        'Default is 0. resolution = 0 will keep original image resolution')
-    parser.add_argument('--id', nargs = '+', type=int,
+                             'Default is 0. resolution = 0 will keep original image resolution')
+    parser.add_argument('--id', nargs='+', type=int,
                         help='The id of images you want to download from MS COCO dataset.'
-                        'Number of images is equal to the number of ids. Masking will base on category.')    
-    parser.add_argument('--number', type = int, default = 10,
-                        help='The total number of images you want to download.')    
+                             'Number of images is equal to the number of ids. Masking will base on category.')
+    parser.add_argument('--number', type=int, default=10,
+                        help='The total number of images you want to download.')
 
     arguments = parser.parse_args()
-    
+
     main(arguments)
-    

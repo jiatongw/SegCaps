@@ -15,15 +15,18 @@ Tasks:
     This is a helper file for choosing which dataset functions to create.
 '''
 import logging
-import utils.load_3D_data as ld3D
-import utils.load_2D_data as ld2D
 from enum import Enum, unique
+
+import utils.load_2D_data as ld2D
+import utils.load_3D_data as ld3D
+
 
 @unique
 class Dataset(Enum):
     luna16 = 1
     mscoco17 = 2
-          
+
+
 def get_generator(dataset):
     if dataset == 'luna16':
         generate_train_batches = ld3D.generate_train_batches
@@ -37,4 +40,3 @@ def get_generator(dataset):
         logging.error('Not valid dataset!')
         return None, None, None
     return generate_train_batches, generate_val_batches, generate_test_batches
-    

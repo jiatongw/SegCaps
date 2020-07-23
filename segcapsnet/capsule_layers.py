@@ -14,6 +14,7 @@ from keras import initializers, layers
 from keras.utils.conv_utils import conv_output_length, deconv_length
 import numpy as np
 
+
 class Length(layers.Layer):
     def __init__(self, num_classes, seg=True, **kwargs):
         super(Length, self).__init__(**kwargs)
@@ -49,19 +50,19 @@ class Mask(layers.Layer):
         self.resize_masks = resize_masks
 
     def call(self, inputs, **kwargs):
-        if type(inputs) is list: # The true label is used to mask the output of capsule layer. For training
+        if type(inputs) is list:  # The true label is used to mask the output of capsule layer. For training
             assert len(inputs) == 2
-            input, mask = inputs #(?, 512, 512, 1, 16), (?, 512, 512, 1)
+            input, mask = inputs  # (?, 512, 512, 1, 16), (?, 512, 512, 1)
             _, hei, wid, _, _ = input.get_shape()
             if self.resize_masks:
                 mask = tf.image.resize_bicubic(mask, (hei.value, wid.value))
-            mask = K.expand_dims(mask, -1) #mask = (?, 512, 512, 1, 1)
+            mask = K.expand_dims(mask, -1)  # mask = (?, 512, 512, 1, 1)
             if input.get_shape().ndims == 3:
                 masked = K.batch_flatten(mask * input)
             else:
                 masked = mask * input
 
-        else: # Mask using the capsule with maximal length. For prediction
+        else:  # Mask using the capsule with maximal length. For prediction
             if inputs.get_shape().ndims == 3:
                 x = K.sqrt(K.sum(K.square(inputs), -1))
                 mask = K.one_hot(indices=K.argmax(x, 1), num_classes=x.get_shape().as_list()[1])
@@ -102,6 +103,7 @@ class ConvCapsuleLayer(layers.Layer):
         self.kernel_initializer = initializers.get(kernel_initializer)
 
     def build(self, input_shape):
+        # Initialize weight matrix for each capsule
         assert len(input_shape) == 5, "The input Tensor should have shape=[None, input_height, input_width," \
                                       " input_num_capsule, input_num_atoms]"
         self.input_height = input_shape[1]
@@ -111,7 +113,7 @@ class ConvCapsuleLayer(layers.Layer):
 
         # Transform matrix
         self.W = self.add_weight(shape=[self.kernel_size, self.kernel_size,
-                                 self.input_num_atoms, self.num_capsule * self.num_atoms],
+                                        self.input_num_atoms, self.num_capsule * self.num_atoms],
                                  initializer=self.kernel_initializer,
                                  name='W')
 
@@ -122,7 +124,6 @@ class ConvCapsuleLayer(layers.Layer):
         self.built = True
 
     def call(self, input_tensor, training=None):
-
         input_transposed = tf.transpose(input_tensor, [3, 0, 1, 2, 4])
         input_shape = K.shape(input_transposed)
         input_tensor_reshaped = K.reshape(input_transposed, [
@@ -213,7 +214,7 @@ class DeconvCapsuleLayer(layers.Layer):
                                      name='W')
         elif self.upsamp_type == 'resize':
             self.W = self.add_weight(shape=[self.kernel_size, self.kernel_size,
-                                     self.input_num_atoms, self.num_capsule * self.num_atoms],
+                                            self.input_num_atoms, self.num_capsule * self.num_atoms],
                                      initializer=self.kernel_initializer, name='W')
         elif self.upsamp_type == 'deconv':
             self.W = self.add_weight(shape=[self.kernel_size, self.kernel_size,
@@ -235,7 +236,6 @@ class DeconvCapsuleLayer(layers.Layer):
             input_shape[1] * input_shape[0], self.input_height, self.input_width, self.input_num_atoms])
         input_tensor_reshaped.set_shape((None, self.input_height, self.input_width, self.input_num_atoms))
 
-
         if self.upsamp_type == 'resize':
             upsamp = K.resize_images(input_tensor_reshaped, self.scaling, self.scaling, 'channels_last')
             outputs = K.conv2d(upsamp, kernel=self.W, strides=(1, 1), padding=self.padding, data_format='channels_last')
@@ -252,13 +252,13 @@ class DeconvCapsuleLayer(layers.Layer):
             output_shape = (batch_size, out_height, out_width, self.num_capsule * self.num_atoms)
 
             outputs = K.conv2d_transpose(input_tensor_reshaped, self.W, output_shape, (self.scaling, self.scaling),
-                                     padding=self.padding, data_format='channels_last')
+                                         padding=self.padding, data_format='channels_last')
 
         votes_shape = K.shape(outputs)
         _, conv_height, conv_width, _ = outputs.get_shape()
 
         votes = K.reshape(outputs, [input_shape[1], input_shape[0], votes_shape[1], votes_shape[2],
-                                 self.num_capsule, self.num_atoms])
+                                    self.num_capsule, self.num_atoms])
         votes.set_shape((None, self.input_num_capsule, conv_height.value, conv_width.value,
                          self.num_capsule, self.num_atoms))
 
@@ -303,7 +303,7 @@ class DeconvCapsuleLayer(layers.Layer):
 
 
 def update_routing(votes, biases, logit_shape, num_dims, input_dim, output_dim,
-                    num_routing):
+                   num_routing):
     if num_dims == 6:
         votes_t_shape = [5, 0, 1, 2, 3, 4]
         r_t_shape = [1, 2, 3, 4, 5, 0]
@@ -334,20 +334,21 @@ def update_routing(votes, biases, logit_shape, num_dims, input_dim, output_dim,
         return (i + 1, logits, activations)
 
     activations = tf.TensorArray(
-      dtype=tf.float32, size=num_routing, clear_after_read=False)
+        dtype=tf.float32, size=num_routing, clear_after_read=False)
     logits = tf.fill(logit_shape, 0.0)
 
     i = tf.constant(0, dtype=tf.int32)
     _, logits, activations = tf.while_loop(
-      lambda i, logits, activations: i < num_routing,
-      _body,
-      loop_vars=[i, logits, activations],
-      swap_memory=True)
+        lambda i, logits, activations: i < num_routing,
+        _body,
+        loop_vars=[i, logits, activations],
+        swap_memory=True)
 
     return K.cast(activations.read(num_routing - 1), dtype='float32')
 
 
 def _squash(input_tensor):
+    ''' Maintain the length of output vector between 0 and 1'''
     norm = tf.norm(input_tensor, axis=-1, keepdims=True)
     norm_squared = norm * norm
     return (input_tensor / norm) * (norm_squared / (1 + norm_squared))
